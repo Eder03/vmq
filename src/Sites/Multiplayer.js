@@ -53,7 +53,8 @@ export default class ApiForm extends Component {
       activePage: 1,
       itemsPerPage: 6,
       showVideo: false,
-      timerFinished: false
+      timerFinished: false,
+      volume: 20
 
     };
 
@@ -64,10 +65,30 @@ export default class ApiForm extends Component {
     this.handleUsernameSubmit = this.handleUsernameSubmit.bind(this);
   }
 
+ handleVolumeChange = (e) => {
+  const newVolume = parseInt(e.target.value);
+  this.setState({ volume: newVolume });
+
+  const iframe = document.getElementById('youtube-video');
+  if (iframe && iframe.contentWindow) {
+    iframe.contentWindow.postMessage(JSON.stringify({
+      event: 'command',
+      func: 'setVolume',
+      args: [newVolume]
+    }), '*');
+  }
+};
+
   componentDidUpdate(prevProps, prevState) {
     if (prevState.chatMessages.length !== this.state.chatMessages.length) {
       this.scrollToBottom();
     }
+if (prevState.selectedsong !== this.state.selectedsong) {
+    setTimeout(() => {
+      this.handleVolumeChange({ target: { value: this.state.volume } });
+    }, 200); // 1 Sekunde warten, bis iFrame geladen ist
+  }
+    
   }
 
   scrollToBottom = () => {
@@ -474,6 +495,19 @@ export default class ApiForm extends Component {
       pointerEvents: 'none' // Deaktiviert Mausereignisse auf ausgeblendetem Video
     };
 
+const volumeContainerStyle = {
+  position: 'absolute',
+  top: '100px', // Gleiche Höhe wie roundInfoStyle
+  right: '7px', // Etwas weiter links als die Rundenanzeige (anpassen je nach Breite)
+  zIndex: 1000,
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: 'rgba(43, 43, 51, 0.8)', // Passend zu deinem Label-Grau
+  padding: '5px 10px',
+  borderRadius: '5px',
+  border: '1px solid #ee4d40' // Ein dezenter Rahmen in deiner Akzentfarbe
+};
+
     
 
 
@@ -554,6 +588,26 @@ export default class ApiForm extends Component {
                 <Label style={{backgroundColor: "#2b2b33", color: "#FFFFF0"}}>Round {roundCount} of {maxRounds}</Label>
               )}
             </div>
+
+            <div style={volumeContainerStyle}>
+  <Icon name={this.state.volume == 0 ? 'volume off' : 'volume up'} style={{ color: '#FFFFF0', marginRight: '6px', marginBottom:'5px' }} />
+  <input
+    type="range"
+    min="0"
+    max="100"
+    value={this.state.volume}
+    onChange={this.handleVolumeChange}
+    style={{ 
+      cursor: 'pointer', 
+      accentColor: '#ee4d40', 
+      width: '80px', // Kompakte Breite für die Ecke
+      verticalAlign: 'middle'
+    }}
+  />
+  <span style={{ color: '#FFFFF0', marginLeft: '8px', fontSize: '12px', minWidth: '30px' }}>
+    {this.state.volume}%
+  </span>
+</div>
   
             <Grid centered>
               <Grid.Row>
@@ -581,14 +635,26 @@ export default class ApiForm extends Component {
                   )}
 
               <iframe
-              id="youtube-video"
-              style={this.state.showVideo ? videoVisible : videoHidden}
-              src={`${this.state.selectedsong.video}?modestbranding=1&iv_load_policy=3&rel=0`}
-              title="YouTube video player"
-              frameBorder="0"
-              allow="autoplay; encrypted-media;"
-              allowFullScreen
-            ></iframe>
+  id="youtube-video" // Die ID ist entscheidend für document.getElementById
+  style={this.state.showVideo ? videoVisible : videoHidden}
+  src={`${this.state.selectedsong.video}${this.state.selectedsong.video?.includes('?') ? '&' : '?'}enablejsapi=1&version=3`}
+  title="YouTube video player"
+  frameBorder="0"
+  allow="autoplay; encrypted-media;"
+></iframe>
+
+<div style={{ 
+  position: 'fixed', 
+  bottom: '250px', // Über dem Chat platziert
+  right: '20px', 
+  backgroundColor: '#36343B', 
+  padding: '10px', 
+  borderRadius: '5px',
+  display: 'flex',
+  alignItems: 'center',
+  zIndex: 1001 
+}}>
+</div>
 
 
                 </Grid.Column>
