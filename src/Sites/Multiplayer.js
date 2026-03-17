@@ -54,7 +54,7 @@ export default class ApiForm extends Component {
       itemsPerPage: 6,
       showVideo: false,
       timerFinished: false,
-      volume: 20
+      volume: 10
 
     };
 
@@ -65,28 +65,42 @@ export default class ApiForm extends Component {
     this.handleUsernameSubmit = this.handleUsernameSubmit.bind(this);
   }
 
- handleVolumeChange = (e) => {
-  const newVolume = parseInt(e.target.value);
-  this.setState({ volume: newVolume });
-
+applyVolumeToIframe = () => {
   const iframe = document.getElementById('youtube-video');
   if (iframe && iframe.contentWindow) {
     iframe.contentWindow.postMessage(JSON.stringify({
       event: 'command',
       func: 'setVolume',
-      args: [newVolume]
+      args: [this.state.volume]
     }), '*');
   }
+}
+
+ handleVolumeChange = (e) => {
+  const newVolume = parseInt(e.target.value);
+  this.setState({ volume: newVolume }, () => {
+    this.applyVolumeToIframe();
+  });
 };
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.chatMessages.length !== this.state.chatMessages.length) {
       this.scrollToBottom();
     }
-if (prevState.selectedsong !== this.state.selectedsong) {
-    setTimeout(() => {
-      this.handleVolumeChange({ target: { value: this.state.volume } });
-    }, 200); // 1 Sekunde warten, bis iFrame geladen ist
+// Wenn ein neues Video geladen wurde (selectedsong hat sich geändert)
+  if (JSON.stringify(prevState.selectedsong) !== JSON.stringify(this.state.selectedsong)) {
+    
+    // Wir versuchen es mehrfach, falls das iFrame noch lädt
+    let attempts = 0;
+    const volumeRetryInterval = setInterval(() => {
+      this.applyVolumeToIframe();
+      attempts++;
+
+      // Nach 5 Versuchen (2,5 Sek) hören wir auf zu probieren
+      if (attempts >= 5) {
+        clearInterval(volumeRetryInterval);
+      }
+    }, 500); // Alle 500ms senden
   }
     
   }
