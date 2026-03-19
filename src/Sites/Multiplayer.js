@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Card, Form, Grid, Image, Modal, Button, Label, Input, Segment, Icon, Pagination, Dropdown } from 'semantic-ui-react';
+import { Card, Form, Grid, Image, Modal, Button, Label, Input, Segment, Icon, Pagination, Dropdown, Header, List } from 'semantic-ui-react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import "../styles/customCss.css"
@@ -54,7 +54,22 @@ export default class ApiForm extends Component {
       itemsPerPage: 6,
       showVideo: false,
       timerFinished: false,
+<<<<<<< Updated upstream
       volume: 10
+=======
+      volume: 10,
+
+      showLobbyModal: false,
+      availableLobbies: [],
+      newLobbyName: '',
+      newLobbyPassword: '',
+      newLobbyRounds: 20,
+      joinPassword: '',
+      showWinnerPodium: false,
+      winnersList: [],
+
+
+>>>>>>> Stashed changes
 
     };
 
@@ -96,6 +111,7 @@ applyVolumeToIframe = () => {
       this.applyVolumeToIframe();
       attempts++;
 
+<<<<<<< Updated upstream
       // Nach 5 Versuchen (2,5 Sek) hören wir auf zu probieren
       if (attempts >= 5) {
         clearInterval(volumeRetryInterval);
@@ -103,6 +119,37 @@ applyVolumeToIframe = () => {
     }, 500); // Alle 500ms senden
   }
     
+=======
+if (prevState.connectedClients !== this.state.connectedClients) {
+        // 1. Finde Spieler, deren Punkte sich erhöht haben
+        const playersWithNewPoints = this.state.connectedClients.filter(client => {
+            // Finde denselben Spieler in der alten Liste (prevState)
+            const prevClient = prevState.connectedClients.find(c => c.id === client.id);
+            // Wenn der Spieler vorher schon da war UND jetzt mehr Punkte hat
+            return prevClient && client.points > prevClient.points;
+        });
+
+        if (playersWithNewPoints.length > 0) {
+            // 2. Erzeuge eine Liste der IDs, die animiert werden sollen
+            const animatingIds = playersWithNewPoints.map(p => p.id);
+
+            // 3. Setze diese IDs im State, um das Rendering zu triggern
+            this.setState({ animatingPlayerIds: animatingIds }, () => {
+                // 4. Starte einen Timer, um die Animation nach 1.5s wieder zu entfernen
+                // (Gleiche Dauer wie im CSS)
+                if (this.animationTimeout) clearTimeout(this.animationTimeout);
+                
+                this.animationTimeout = setTimeout(() => {
+                    this.setState({ animatingPlayerIds: [] });
+                }, 1500);
+            });
+        }
+    }
+
+
+
+
+>>>>>>> Stashed changes
   }
 
   scrollToBottom = () => {
@@ -146,7 +193,12 @@ applyVolumeToIframe = () => {
 
 
     this.socket.on('updatePoints', (clients) => {
-      this.setState({ connectedClients: clients });
+      // Wir speichern die aktuellen Clients als 'previousClients' im State,
+    // BEVOR wir sie aktualisieren. So können wir später vergleichen.
+    this.setState({ 
+        previousClients: this.state.connectedClients, 
+        connectedClients: clients 
+    });
     });
 
     this.socket.on('updateClients', (clients) => {
@@ -179,6 +231,7 @@ applyVolumeToIframe = () => {
       this.resetDropdown();
     });
 
+<<<<<<< Updated upstream
     this.socket.on('winnerAnnounced', (winners) => {
       // Überprüfe, ob winners ein Array ist und lege es gegebenenfalls fest
       if (!Array.isArray(winners)) {
@@ -208,6 +261,35 @@ applyVolumeToIframe = () => {
     });
     
     
+=======
+    // In setupSocketListeners()
+
+this.socket.on('winnerAnnounced', (winners) => {
+  const sortedPlayers = [...this.state.connectedClients].sort((a, b) => b.points - a.points);
+    
+    // Ränge berechnen
+    let currentRank = 1;
+    const playersWithRanks = sortedPlayers.map((player, index) => {
+        if (index > 0 && player.points < sortedPlayers[index - 1].points) {
+            currentRank = index + 1;
+        }
+        return { ...player, rank: currentRank };
+    });
+
+    // Setze den State, um das Layout umzuschalten
+    this.setState({
+        winnersList: playersWithRanks,
+        showWinnerPodium: true, // Layout umschalten!
+        countdownPlaying: false, // Timer stoppen
+        isPaused: true, // Spiel pausieren
+        loadingNextSong: false,
+        timerFinished: true,
+        showVideo: false, // Video ausblenden
+    });
+});
+
+
+>>>>>>> Stashed changes
 
     this.socket.on('startTimer', ({ remainingTime }) => {
       this.setState({ remainingTime, countdownPlaying: true, timerFinished: false });
@@ -388,7 +470,11 @@ applyVolumeToIframe = () => {
       isPaused: false,
       guesses: {},
       showModal: false,
-      selectedsong: {}
+      selectedsong: {},
+      showWinnerPodium: false,
+        winnersList: [],
+        showStartButton: true, // Startbutton für Host wieder anzeigen
+        roundCount: 0,
     });
     this.sendPoints();
   }
@@ -525,6 +611,7 @@ const volumeContainerStyle = {
     
 
 
+<<<<<<< Updated upstream
     const indexOfLastItem = activePage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentSkins = skins.slice(indexOfFirstItem, indexOfLastItem);
@@ -538,6 +625,97 @@ const volumeContainerStyle = {
       return (
         <Modal open={true} size="tiny">
         <Modal.Header>Bitte wählen Sie einen Skin und geben Sie Ihren Benutzernamen ein:</Modal.Header>
+=======
+  const circleStyle = {
+    transition: 'stroke-dashoffset 1s ease-in-out',
+    strokeDasharray: `${2 * Math.PI * 45}`,
+    strokeDashoffset: circleProgress,
+    transform: 'rotate(-90deg)',
+    transformOrigin: 'center',
+  };
+
+  const indexOfLastItem = activePage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentSkins = skins.slice(indexOfFirstItem, indexOfLastItem);
+
+  let renderResultElement = this.state.gameBefore !== '' ? this.renderResult() : null;
+
+  if (this.state.showWinnerPodium) {
+    const podiumPlayers = this.state.winnersList.slice(0, 3); // Platz 1-3
+    const remainingPlayers = this.state.winnersList.slice(3); // Platz 4+
+
+    return (
+        <div className="game-container podium-active" style={{ padding: '20px', textAlign: 'center' }}>
+            <h1 style={{ color: '#FFFFF0', fontSize: '3.5em', marginBottom: '20px' }}>Endergebnis</h1>
+            
+            <div className="podium-container">
+                {podiumPlayers.map((player) => {
+                    let stepClass = 'step-bronze';
+                    if (player.rank === 1) stepClass = 'step-gold';
+                    else if (player.rank === 2) stepClass = 'step-silver';
+
+                    return (
+                        <div key={player.id} className={`podium-step ${stepClass}`}>
+                            {player.rank === 1 && <Icon name="crown" className="winner-crown" />}
+                            <Image src={player.skin} className="podium-avatar" style={{ margin: '0 auto' }} />
+                            <div className="podium-name">{player.username}</div>
+                            <div className="podium-points">{player.points} Pkt.</div>
+                            <div className="podium-rank-number">{player.rank}</div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* DIE RESTLICHE RANGLISTE (4+) */}
+            {remainingPlayers.length > 0 && (
+                <Segment compact className="ranking-list-segment" style={{ backgroundColor: '#1a1a1d', margin: '30px auto' }}>
+                    <Header as="h3" inverted textAlign="center" color="grey">Weitere Platzierungen:</Header>
+                    <List selection relaxed style={{ backgroundColor: '#36343B' }}>
+                        {remainingPlayers.map((player, index) => (
+                            <List.Item key={player.id} className="ranking-item-compact">
+                                <Grid columns={3} verticalAlign="middle" compact>
+                                    <Grid.Column width={2} textAlign="center">
+                                        <Header as="h4" inverted color="grey">{index + 4}.</Header>
+                                    </Grid.Column>
+                                    <Grid.Column width={10}>
+                                        <Image src={player.skin} className="ranking-avatar-mini" />
+                                        <span style={{ fontSize: '1.2em', marginLeft: '10px' }}>{player.username}</span>
+                                    </Grid.Column>
+                                    <Grid.Column width={4} textAlign="right">
+                                        <Header as="h4" inverted style={{ color: '#ee4d40' }}>{player.points} Pkt.</Header>
+                                    </Grid.Column>
+                                </Grid>
+                            </List.Item>
+                        ))}
+                    </List>
+                </Segment>
+            )}
+
+            {/* NEUSTART BUTTON - Nur für den Host sichtbar */}
+            {this.state.connectedClients.length > 0 && this.state.connectedClients[0].id === this.socket.id && (
+                <div style={{ marginTop: '40px' }}>
+                    <Button 
+                        size="huge" 
+                        color="green" 
+                        content="Nächste Runde starten" 
+                        icon="refresh"
+                        onClick={() => {
+                            this.socket.emit('resetGameAndPoints'); // Triggert Neustart für alle
+                            this.setState({ showWinnerPodium: false });
+                        }}
+                    />
+                </div>
+            )}
+        </div>
+    );
+}
+
+  // PHASE 1: Username & Skin Auswahl
+  if (showUsernamePopup) {
+    return (
+      <Modal open={true} size="tiny">
+        <Modal.Header>Bitte wählen Sie einen Skin und Benutzernamen:</Modal.Header>
+>>>>>>> Stashed changes
         <Modal.Content>
           <Grid centered columns={3}>
             <Grid.Row>
@@ -775,10 +953,112 @@ const volumeContainerStyle = {
                 {renderResult}
               </div>
             )}
+<<<<<<< Updated upstream
           </div>
         );
       }
     }
   }
   
+=======
+            <iframe
+              id="youtube-video"
+              className={this.state.showVideo ? "video-frame-visible" : "video-frame-hidden"}
+              src={`${selectedsong.video}${selectedsong.video?.includes('?') ? '&' : '?'}enablejsapi=1&version=3`}
+              frameBorder="0" allow="autoplay; encrypted-media;"
+            ></iframe>
+          </Grid.Column>
+        </Grid.Row>
+
+        <Grid.Row>
+          <Grid.Column width={8}>
+            <Dropdown
+              placeholder="Select Game" fluid selection search inverted
+              options={this.state.dropdownOptions}
+              value={this.state.userGuess}
+              onChange={this.onChangeDropdown}
+              className="guess-dropdown"
+              style={{ backgroundColor: "#36343B", color: "#FFFFF0" }}
+            />
+          </Grid.Column>
+        </Grid.Row>
+
+        <Grid.Row style={{ marginTop: '20px' }}>
+          {connectedClients.map((client, index) => {
+    // 1. Prüfen, ob die ID dieses Spielers gerade animiert werden soll (aus componentDidUpdate)
+    const isAnimating = this.state.animatingPlayerIds && this.state.animatingPlayerIds.includes(client.id);
+
+    return (
+        <Card.Group centered key={client.id || index} style={{ margin: '12px' }}>
+            {/* 2. Container-Klasse 'player-card-container' für die absolute Positionierung des +1 */}
+            <Card className="player-card-container" style={{ width: '250px', backgroundColor: "#36343B", border: '2.2px solid #ee4d40', boxShadow: "none" }}>
+                
+                {/* --- NEU: Das Animations-Element (+1 schwebt hoch) --- */}
+                {isAnimating && (
+                    <div className="points-animation">+1</div>
+                )}
+                
+                <div style={{ height: '250px', overflow: 'hidden', backgroundColor: "#FFFFF0" }}>
+                    <Image src={client.skin} style={{ width: '250px', height: '250px', objectFit: 'cover' }} />
+                </div>
+                
+                <Card.Content>
+                    <Card.Header style={{ color: "#FFFFF0" }}>{client.username}</Card.Header>
+                    <Card.Meta style={{ color: "#bfbfbf" }}>Gamer</Card.Meta>
+                    <Card.Description>
+                        <h2 style={{ color: "#FFFFF0" }}>Punkte: {client.points}</h2>
+                    </Card.Description>
+                </Card.Content>
+
+                {/* --- WIEDER EINGEFÜGT: Die Anzeige der Tipps (guesses) --- */}
+                {guesses[client.username] && (
+                    <Label
+                        pointing
+                        /* Farbe anpassen: Grün für Richtig, Rot für Falsch */
+                        color={guesses[client.username].isCorrect ? 'green' : 'red'}
+                        style={{ marginTop: '5px' }} /* Kleiner Abstand zur Karte */
+                    >
+                        {guesses[client.username].guess}
+                    </Label>
+                )}
+                {/* --- ENDE DES WIEDER EINGEFÜGTEN BLOCKS --- */}
+
+            </Card>
+        </Card.Group>
+    );
+})}
+        </Grid.Row>
+
+        {this.state.showStartButton && isHost &&(
+          <Grid.Row>
+            <Button content="Start Game" color="green" onClick={this.startGame} style={{ backgroundColor: "#ee4d40" }} />
+          </Grid.Row>
+        )}
+      </Grid>
+
+      <Grid.Row className="chat-window">
+        <div className="chat-messages-container">
+          {chatMessages.map((msg, index) => (
+            <div key={index}><strong>{msg.username}:</strong> {msg.message}</div>
+          ))}
+          <div ref={(el) => { this.messagesEnd = el; }}></div>
+        </div>
+        <Form onSubmit={this.handleSendMessage} style={{ display: 'flex', padding: '10px', backgroundColor: "#36343B" }}>
+          <Input placeholder='Nachricht...' value={message} onChange={(e) => this.setState({ message: e.target.value })} style={{ flex: '1' }} />
+          <Button type='submit' icon><Icon name='send' /></Button>
+        </Form>
+      </Grid.Row>
+
+      <Modal open={showModal} onClose={() => this.setState({ showModal: false })}>
+        <Modal.Header>Spiel beendet</Modal.Header>
+        <Modal.Content><p>{winnerInfo}</p></Modal.Content>
+        <Modal.Actions><Button onClick={() => this.setState({ showModal: false })}>Schließen</Button></Modal.Actions>
+      </Modal>
+
+      {renderResultElement && <div className="result-modal">{renderResultElement}</div>}
+    </div>
+  );
+}
+
+>>>>>>> Stashed changes
 }
