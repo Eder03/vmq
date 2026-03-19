@@ -42,8 +42,8 @@ export default class ApiForm extends Component {
       maxRounds: 0,
       gameBefore: '',
       songBefore: '',
-      guesses:{},
-      showStartButton: true, 
+      guesses: {},
+      showStartButton: true,
       winners: [],
       winnerInfo: '',
       message: '',
@@ -54,62 +54,79 @@ export default class ApiForm extends Component {
       itemsPerPage: 6,
       showVideo: false,
       timerFinished: false,
-      volume: 10
+      volume: 10,
+
+      showLobbyModal: false,
+      availableLobbies: [],
+      newLobbyName: '',
+      newLobbyPassword: '',
+      newLobbyRounds: 20,
+      joinPassword: ''
+
+
 
     };
 
-    //this.socket = io('localhost:5002');
-    this.socket = io('https://vmq-server.onrender.com');
+    this.socket = io('localhost:5002');
+    //this.socket = io('https://vmq-server.onrender.com');
     this.startGame = this.startGame.bind(this);
-  
+
     this.handleUsernameSubmit = this.handleUsernameSubmit.bind(this);
   }
 
-applyVolumeToIframe = () => {
-  const iframe = document.getElementById('youtube-video');
-  if (iframe && iframe.contentWindow) {
-    iframe.contentWindow.postMessage(JSON.stringify({
-      event: 'command',
-      func: 'setVolume',
-      args: [this.state.volume]
-    }), '*');
+  applyVolumeToIframe = () => {
+    const iframe = document.getElementById('youtube-video');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: 'setVolume',
+        args: [this.state.volume]
+      }), '*');
+    }
   }
-}
 
- handleVolumeChange = (e) => {
-  const newVolume = parseInt(e.target.value);
-  this.setState({ volume: newVolume }, () => {
-    this.applyVolumeToIframe();
-  });
-};
+  handleVolumeChange = (e) => {
+    const newVolume = parseInt(e.target.value);
+    this.setState({ volume: newVolume }, () => {
+      this.applyVolumeToIframe();
+    });
+  };
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.chatMessages.length !== this.state.chatMessages.length) {
       this.scrollToBottom();
     }
-// Wenn ein neues Video geladen wurde (selectedsong hat sich geändert)
-  if (JSON.stringify(prevState.selectedsong) !== JSON.stringify(this.state.selectedsong)) {
-    
-    // Wir versuchen es mehrfach, falls das iFrame noch lädt
-    let attempts = 0;
-    const volumeRetryInterval = setInterval(() => {
-      this.applyVolumeToIframe();
-      attempts++;
+    // Wenn ein neues Video geladen wurde (selectedsong hat sich geändert)
+    if (JSON.stringify(prevState.selectedsong) !== JSON.stringify(this.state.selectedsong)) {
 
-      // Nach 5 Versuchen (2,5 Sek) hören wir auf zu probieren
-      if (attempts >= 5) {
-        clearInterval(volumeRetryInterval);
-      }
-    }, 500); // Alle 500ms senden
-  }
-    
+      // Wir versuchen es mehrfach, falls das iFrame noch lädt
+      let attempts = 0;
+      const volumeRetryInterval = setInterval(() => {
+        this.applyVolumeToIframe();
+        attempts++;
+
+        // Nach 5 Versuchen (2,5 Sek) hören wir auf zu probieren
+        if (attempts >= 5) {
+          clearInterval(volumeRetryInterval);
+        }
+      }, 500); // Alle 500ms senden
+    }
+
   }
 
-  scrollToBottom = () => {
-    this.messagesEnd.scrollIntoView({ behavior: 'smooth' });
-  };
 
   componentDidMount() {
+
+    this.fetchInitialData();
+    this.setupSocketListeners();
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.state.timerInterval);
+  }
+
+
+  fetchInitialData() {
     axios.get('https://vmq.onrender.com/getAll')
       .then(res => {
         this.setState({ musicData: res.data });
@@ -127,7 +144,7 @@ applyVolumeToIframe = () => {
       });
 
 
-      axios.get('https://raw.githubusercontent.com/Eder03/vmq_skins/main/skins.json')
+    axios.get('https://raw.githubusercontent.com/Eder03/vmq_skins/main/skins.json')
       .then(res => {
         this.setState({ skins: res.data });
       })
@@ -135,33 +152,28 @@ applyVolumeToIframe = () => {
         console.log(error);
       });
 
+  }
 
-
-
-
-
-
-
-
-
-
+  setupSocketListeners() {
     this.socket.on('updatePoints', (clients) => {
       this.setState({ connectedClients: clients });
     });
 
     this.socket.on('updateClients', (clients) => {
-      this.setState({ connectedClients: clients });
-      this.setState({ clients: this.state.connectedClients.length });
+    this.setState({ 
+        connectedClients: clients, // Das hier rendert die Karten
+        clients: clients.length 
     });
+});
 
     this.socket.on('gameStarted', (selectedSong, maxRounds) => {
-      if(Object.keys(this.state.selectedsong).length != 0){
-        this.setState({gameBefore: this.state.selectedsong.currentGame})
-        this.setState({songBefore: this.state.selectedsong.currentSong.name})
+      if (Object.keys(this.state.selectedsong).length != 0) {
+        this.setState({ gameBefore: this.state.selectedsong.currentGame })
+        this.setState({ songBefore: this.state.selectedsong.currentSong.name })
       }
-      
+
       this.setState({ selectedsong: selectedSong, loadingNextSong: false });
-      this.setState({maxRounds: maxRounds});
+      this.setState({ maxRounds: maxRounds });
       this.setState(prevState => ({
         roundCount: prevState.roundCount + 1
       }));
@@ -170,7 +182,7 @@ applyVolumeToIframe = () => {
     });
 
     this.socket.on('nextSongLoaded', (selectedSong) => {
-      
+
       this.setState({ selectedsong: selectedSong, loadingNextSong: false });
       this.setState(prevState => ({
         roundCount: prevState.roundCount + 1
@@ -184,30 +196,30 @@ applyVolumeToIframe = () => {
       if (!Array.isArray(winners)) {
         winners = [winners];
       }
-    
+
       // Extrahiere nur die Benutzernamen der Gewinner
       const winnerNames = winners.map(winner => winner.username);
-    
+
       // Extrahiere die Punkte des ersten Gewinners (falls es mehrere gibt, haben sie die gleiche Punktzahl)
       const points = winners.length > 0 ? winners[0].points : 0;
-    
+
       // Setze den Zustand, um das Modal anzuzeigen und die Gewinnerinformationen zu speichern
       if (winners.length === 1) {
-        this.setState({ 
+        this.setState({
           showModal: true,
           winnerInfo: `Der Gewinner ist ${winnerNames[0]} mit ${points} Punkten${winners.length > 1 ? 'en' : ''}!`,
-          showStartButton: true 
+          showStartButton: true
         });
       } else {
-        this.setState({ 
+        this.setState({
           showModal: true,
           winnerInfo: `Die Gewinner sind ${winnerNames.join(', ')} mit ${points} Punkt${winners.length > 1 ? 'en' : ''}!`,
-          showStartButton: true 
+          showStartButton: true
         });
       }
     });
-    
-    
+
+
 
     this.socket.on('startTimer', ({ remainingTime }) => {
       this.setState({ remainingTime, countdownPlaying: true, timerFinished: false });
@@ -254,10 +266,24 @@ applyVolumeToIframe = () => {
         chatMessages: [...prevState.chatMessages, message]
       }));
     });
-  }
 
-  componentWillUnmount() {
-    clearInterval(this.state.timerInterval);
+    // In setupSocketListeners hinzufügen:
+this.socket.on('lobbyCreated', ({ roomName }) => {
+        this.setState({ 
+            showLobbyModal: false, 
+            roomName: roomName 
+        });
+        // Hinweis: Das updateClients kommt separat vom Server und füllt connectedClients
+    });
+
+this.socket.on('lobbyList', (lobbies) => {
+    this.setState({ availableLobbies: lobbies });
+});
+
+this.socket.on('error_message', (msg) => {
+    alert(msg); // Einfaches Feedback für den User
+});
+
   }
 
   updateGuesses = (username, guess, isCorrect) => {
@@ -293,14 +319,14 @@ applyVolumeToIframe = () => {
     }
   };
 
-  
-  
+
+
 
   startTimerAnimation = () => {
-    this.setState({isPaused: false})
+    this.setState({ isPaused: false })
     const { timerStart } = this.state;
     const intervalDuration = 1000 / timerStart;
-    this.setState({showVideo: false})
+    this.setState({ showVideo: false })
 
     const timerInterval = setInterval(() => {
       const { remainingTime, countdownPlaying } = this.state;
@@ -312,10 +338,10 @@ applyVolumeToIframe = () => {
       } else {
         clearInterval(timerInterval);
         this.setState({ circleProgress: 2 * Math.PI * 45 });
-        
-          this.setState({ showVideo: true });
-          this.setState({isPaused: true})
-        
+
+        this.setState({ showVideo: true });
+        this.setState({ isPaused: true })
+
       }
     }, intervalDuration);
 
@@ -325,7 +351,7 @@ applyVolumeToIframe = () => {
   guessSong = () => {
     const { userGuess, selectedsong, username } = this.state;
     const isCorrect = userGuess === selectedsong.currentGame.game;
-  
+
     if (isCorrect) {
       this.setState(prevState => ({
         points: prevState.points + 1
@@ -335,14 +361,14 @@ applyVolumeToIframe = () => {
     } else {
       this.sendPoints(); // Also send points if guess is incorrect
     }
-  
-  
-    this.setState({gameBefore: this.state.selectedsong.currentGame})
-    this.setState({songBefore: this.state.selectedsong.currentSong.name})
+
+
+    this.setState({ gameBefore: this.state.selectedsong.currentGame })
+    this.setState({ songBefore: this.state.selectedsong.currentSong.name })
 
     // Guesses aktualisieren
     this.updateGuesses(username, userGuess, isCorrect);
-    
+
     // Informiere den Server über den Guess
     this.socket.emit('userGuess', { username, guess: userGuess, isCorrect });
   };
@@ -353,19 +379,64 @@ applyVolumeToIframe = () => {
   }
 
 
-  
+  scrollToBottom = () => {
+    this.messagesEnd.scrollIntoView({ behavior: 'smooth' });
+  };
 
   handleUsernameSubmit = () => {
-    const { username, selectedSkin } = this.state;
-    this.setState({ showUsernamePopup: false });
-    this.socket.emit('setUsername', username, selectedSkin);
+
+    this.setState({
+      showUsernamePopup: false,
+      showLobbyModal: true
+    });
+    this.socket.emit('getLobbies');
   };
+
+
+  joinLobby = (roomName, providedPassword = null) => {
+    const { username, selectedSkin, joinPassword } = this.state;
+    const password = providedPassword || joinPassword;
+
+    this.socket.emit('joinLobby', { 
+        roomName, 
+        password: password, 
+        username, 
+        skin: selectedSkin 
+    });
+    
+    // UI umschalten: Lobby-Modal schließen, Spiel anzeigen
+    this.setState({ 
+        showLobbyModal: false, 
+        roomName: roomName 
+    });
+};
+
+  createLobby = () => {
+    const { newLobbyName, newLobbyPassword, newLobbyRounds, username, selectedSkin } = this.state;
+    
+    if(!newLobbyName) return alert("Bitte Lobby-Namen eingeben");
+
+    // UI sofort umschalten (wie bei joinLobby)
+    this.setState({ 
+        showLobbyModal: false, 
+        roomName: newLobbyName 
+    });
+
+    // Daten an Server senden
+    this.socket.emit('createLobby', { 
+        roomName: newLobbyName, 
+        password: newLobbyPassword, 
+        rounds: newLobbyRounds,
+        username: username,    
+        skin: selectedSkin     
+    });
+};
 
   onChangeDropdown = (e, { value }) => this.setState({ userGuess: value });
 
   onSubmit(e) { }
 
-   startGame(e) {
+  startGame(e) {
     this.socket.emit('resetGameAndPoints');
     this.socket.emit('startGameAndHideButton');
     this.socket.emit('startGame');
@@ -403,8 +474,8 @@ applyVolumeToIframe = () => {
   renderResult() {
     return (
       <div style={{ marginTop: '5px', width: '300px', backgroundColor: "#1a1a1d" }}>
-        <Segment compact style={{backgroundColor: "#36343B", color: "#FFFFF0"}}>
-          <Label style={{backgroundColor: "#2b2b33", color: "#FFFFF0"}}>Last game info</Label>
+        <Segment compact style={{ backgroundColor: "#36343B", color: "#FFFFF0" }}>
+          <Label style={{ backgroundColor: "#2b2b33", color: "#FFFFF0" }}>Last game info</Label>
           <br />
           <br />
           <b>Game: </b> {this.state.gameBefore.game}
@@ -426,118 +497,38 @@ applyVolumeToIframe = () => {
   handlePageChange = (e, { activePage }) => {
     this.setState({ activePage });
   };
-  
-  
-  
-  
+
+
+
+
 
   render() {
-    const { username, activePage, itemsPerPage, skins, selectedSkin, message, chatMessages, winners, winnerInfo, guesses, clients, points, countdownPlaying, remainingTime, loadingNextSong, selectedsong, connectedClients, showModal, winnerUsernames, winnerPoints, circleProgress, isPaused, roundCount, maxRounds } = this.state;
-  
-    
-  
-    const textStyle = {
-      fontSize: '14px',
-      dominantBaseline: 'middle',
-      textAnchor: 'middle',
-      fill: 'white',
-      color: 'white'
-    };
-  
-    const roundInfoStyle = {
-      position: 'absolute',
-      top: '60px',  // Adjusted top value to add space between navbar and round info
-      right: '10px',
-      zIndex: 1000,
-    };
-  
-    const resultStyle = {
-      position: 'absolute',
-      top: '50px',
-      left: '10px',
-      padding: '10px',
-      backgroundColor: '#1a1a1d',
-      zIndex: 1000,
-      width: '300px',
-    };
-
-    const svgStyle = {
-      width: '120px',
-      height: '120px',
-    };
-  
-    const circleStyle = {
-      transition: 'stroke-dashoffset 1s ease-in-out',
-      strokeDasharray: `${2 * Math.PI * 45}`,
-      strokeDashoffset: circleProgress,
-      transform: 'rotate(-90deg)',
-      transformOrigin: 'center',
-    };
-
-    const timerBoxStyle = {
-      width: '391.111px',
-      height: '220px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      border: '3px solid #ee4d40',
-      borderRadius: '15px',
-      margin: '20px auto', // Center horizontally
-    };
-
-    const videoVisible = {
-      
-      postion:'absolute',
-      display: 'flex',
-      width: '391.111px',
-      height: '220px',
-      borderRadius: '15px',
-      transition: 'opacity 0.4s ease',
-      opacity: 1,
-      pointerEvents: 'none',
-      margin: '20px auto', // Center horizontally
-    };
-
-    const videoHidden = {
-      position: 'fixed',
-      bottom: '10px',
-      right: '10px',
-      width: '300px',
-      height: '200px',
-      borderRadius: '10px',
-      opacity: 0,
-      pointerEvents: 'none' // Deaktiviert Mausereignisse auf ausgeblendetem Video
-    };
-
-const volumeContainerStyle = {
-  position: 'absolute',
-  top: '100px', // Gleiche Höhe wie roundInfoStyle
-  right: '7px', // Etwas weiter links als die Rundenanzeige (anpassen je nach Breite)
-  zIndex: 1000,
-  display: 'flex',
-  alignItems: 'center',
-  backgroundColor: 'rgba(43, 43, 51, 0.8)', // Passend zu deinem Label-Grau
-  padding: '5px 10px',
-  borderRadius: '5px',
-  border: '1px solid #ee4d40' // Ein dezenter Rahmen in deiner Akzentfarbe
-};
 
     
+  const { username, activePage, itemsPerPage, skins, selectedSkin, message, chatMessages, winners, winnerInfo, guesses, clients, points, countdownPlaying, remainingTime, loadingNextSong, selectedsong, connectedClients, showModal, winnerUsernames, winnerPoints, circleProgress, isPaused, roundCount, maxRounds, showLobbyModal, showUsernamePopup, availableLobbies } = this.state;
+  console.log("RENDER - Clients:", connectedClients, "LobbyModal:", showLobbyModal);
 
+  const isHost = connectedClients.length > 0 && connectedClients[0].id === this.socket.id;
 
-    const indexOfLastItem = activePage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentSkins = skins.slice(indexOfFirstItem, indexOfLastItem);
-  
-    let renderResult;
-    if (this.state.gameBefore != '') {
-      renderResult = this.renderResult();
-    }
-  
-    if (this.state.showUsernamePopup) {
-      return (
-        <Modal open={true} size="tiny">
-        <Modal.Header>Bitte wählen Sie einen Skin und geben Sie Ihren Benutzernamen ein:</Modal.Header>
+  const circleStyle = {
+    transition: 'stroke-dashoffset 1s ease-in-out',
+    strokeDasharray: `${2 * Math.PI * 45}`,
+    strokeDashoffset: circleProgress,
+    transform: 'rotate(-90deg)',
+    transformOrigin: 'center',
+  };
+
+  const indexOfLastItem = activePage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentSkins = skins.slice(indexOfFirstItem, indexOfLastItem);
+
+  let renderResultElement = this.state.gameBefore !== '' ? this.renderResult() : null;
+
+  // PHASE 1: Username & Skin Auswahl
+  if (showUsernamePopup) {
+    return (
+      <Modal open={true} size="tiny">
+        <Modal.Header>Bitte wählen Sie einen Skin und Benutzernamen:</Modal.Header>
         <Modal.Content>
           <Grid centered columns={3}>
             <Grid.Row>
@@ -548,8 +539,8 @@ const volumeContainerStyle = {
                     style={{
                       cursor: 'pointer',
                       border: selectedSkin === skin.url ? '2px solid green' : 'none',
-                      height: '200px', // Feste Höhe für die Karte
-                      width: '250px', // Feste Breite für die Karte
+                      height: '200px',
+                      width: '250px',
                     }}
                   >
                     <div style={{ height: '150px', overflow: 'hidden' }}>
@@ -557,7 +548,6 @@ const volumeContainerStyle = {
                     </div>
                     <Card.Content>
                       <Card.Header>{skin.name}</Card.Header>
-                      <Card.Description>{skin.description}</Card.Description>
                     </Card.Content>
                   </Card>
                 </Grid.Column>
@@ -565,220 +555,148 @@ const volumeContainerStyle = {
             </Grid.Row>
           </Grid>
           <Grid centered style={{ marginTop: '20px' }}>
-            <Pagination
-              totalPages={Math.ceil(skins.length / itemsPerPage)}
-              activePage={activePage}
-              onPageChange={this.handlePageChange}
-              firstItem={null}
-              lastItem={null}
-              style={{ textAlign: 'center', margin: '0', padding: '0' }} // CSS für die Pagination
-            />
+            <Pagination totalPages={Math.ceil(skins.length / itemsPerPage)} activePage={activePage} onPageChange={this.handlePageChange} />
           </Grid>
           <Form style={{ marginTop: '30px' }}>
-            <Form.Field>
-              <Input
-                placeholder="Benutzername"
-                value={username}
-                onChange={(e) => this.setState({ username: e.target.value })}
-              />
-            </Form.Field>
-            <Button primary onClick={this.handleUsernameSubmit}>
-              Bestätigen
-            </Button>
+            <Input placeholder="Benutzername" value={username} onChange={(e) => this.setState({ username: e.target.value })} fluid />
+            <Button primary onClick={this.handleUsernameSubmit} style={{ marginTop: '10px' }}>Bestätigen</Button>
           </Form>
         </Modal.Content>
       </Modal>
-      );
-    } else {
-      if (this.state.connectionError) {
-        return <div>Error: Der Socket.IO-Server konnte nicht erreicht werden.</div>;
-      } else {
-        return (
-          <div>
-            <br />
-  
-            <div style={roundInfoStyle}>
-              {roundCount > 0 && (
-                <Label style={{backgroundColor: "#2b2b33", color: "#FFFFF0"}}>Round {roundCount} of {maxRounds}</Label>
-              )}
-            </div>
+    );
+  }
 
-            <div style={volumeContainerStyle}>
-  <Icon name={this.state.volume == 0 ? 'volume off' : 'volume up'} style={{ color: '#FFFFF0', marginRight: '6px', marginBottom:'5px' }} />
-  <input
-    type="range"
-    min="0"
-    max="100"
-    value={this.state.volume}
-    onChange={this.handleVolumeChange}
-    style={{ 
-      cursor: 'pointer', 
-      accentColor: '#ee4d40', 
-      width: '80px', // Kompakte Breite für die Ecke
-      verticalAlign: 'middle'
-    }}
-  />
-  <span style={{ color: '#FFFFF0', marginLeft: '8px', fontSize: '12px', minWidth: '30px' }}>
-    {this.state.volume}%
-  </span>
-</div>
-  
-            <Grid centered>
-              <Grid.Row>
-                <Grid.Column width={8} textAlign="center">
-                
-                {!isPaused && (
-                  <div style={timerBoxStyle}>
-                    <svg style={svgStyle} viewBox="0 0 100 100">
-                      
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        fill="none"
-                        stroke="#ee4d40"
-                        strokeWidth="10"
-                        strokeLinecap="round"
-                        style={circleStyle}
-                      ></circle>
-                      <text x="50" y="50" style={textStyle}>
-                        {countdownPlaying ? remainingTime : 'Paused'}
-                      </text>
-                    </svg>
-                    </div>
+  // PHASE 2: Lobby Auswahl / Erstellen
+  if (showLobbyModal) {
+    return (
+      <Modal open={true} size="large">
+        <Button onClick={() => console.log("Aktueller State:", this.state)}>Debug State</Button>
+        <Modal.Header>Lobby-Auswahl</Modal.Header>
+        <Modal.Content scrolling>
+          <Grid columns={2} divided stackable>
+            <Grid.Column>
+              <h3>Lobby erstellen</h3>
+              <Form>
+                <Form.Input label="Lobby Name" placeholder="Cool Room" onChange={e => this.setState({ newLobbyName: e.target.value })} />
+                <Form.Input label="Passwort (optional)" type="password" onChange={e => this.setState({ newLobbyPassword: e.target.value })} />
+                <Form.Input label="Runden" type="number" defaultValue={20} onChange={e => this.setState({ newLobbyRounds: e.target.value })} />
+                <Button color="green" onClick={this.createLobby} fluid>Erstellen & Beitreten</Button>
+              </Form>
+            </Grid.Column>
+            <Grid.Column>
+              <h3>Verfügbare Lobbys</h3>
+              {availableLobbies.length === 0 ? <p>Keine Lobbys verfügbar.</p> : 
+                availableLobbies.map(lobby => (
+                <Segment key={lobby.name} clearing>
+                  <strong>{lobby.name}</strong> ({lobby.playerCount} Spieler)
+                  {lobby.hasPassword && <Icon name="lock" style={{ marginLeft: '5px' }} />}
+                  <Button floated="right" primary onClick={() => this.joinLobby(lobby.name)}>Beitreten</Button>
+                  {lobby.hasPassword && (
+                    <Input size="mini" floated="right" placeholder="PW" type="password" onChange={e => this.setState({ joinPassword: e.target.value })} style={{width: '80px', marginRight: '5px'}}/>
                   )}
+                </Segment>
+              ))}
+            </Grid.Column>
+          </Grid>
+        </Modal.Content>
+      </Modal>
+    );
+  }
 
-              <iframe
-  id="youtube-video" // Die ID ist entscheidend für document.getElementById
-  style={this.state.showVideo ? videoVisible : videoHidden}
-  src={`${this.state.selectedsong.video}${this.state.selectedsong.video?.includes('?') ? '&' : '?'}enablejsapi=1&version=3`}
-  title="YouTube video player"
-  frameBorder="0"
-  allow="autoplay; encrypted-media;"
-></iframe>
+  // PHASE 3: Das eigentliche Spiel
+  return (
+    <div className="game-container">
+      <div className="round-info-container">
+        {roundCount > 0 && <Label style={{ backgroundColor: "#2b2b33", color: "#FFFFF0" }}>Round {roundCount} of {maxRounds}</Label>}
+      </div>
 
-<div style={{ 
-  position: 'fixed', 
-  bottom: '250px', // Über dem Chat platziert
-  right: '20px', 
-  backgroundColor: '#36343B', 
-  padding: '10px', 
-  borderRadius: '5px',
-  display: 'flex',
-  alignItems: 'center',
-  zIndex: 1001 
-}}>
-</div>
+      <div className="volume-control-container">
+        <Icon name={this.state.volume === 0 ? 'volume off' : 'volume up'} style={{ color: '#FFFFF0', marginRight: '8px' }} />
+        <input type="range" min="0" max="100" className="volume-slider" value={this.state.volume} onChange={this.handleVolumeChange} />
+        <span className="volume-text">{this.state.volume}%</span>
+      </div>
 
-
-                </Grid.Column>
-              </Grid.Row>
-  
-              <Grid.Row>
-                <Grid.Column width={8}>
-                  <Form onSubmit={this.onSubmit}>
-                    <Form.Dropdown 
-                    
-                      as={Dropdown}
-                      inverted
-                      placeholder="Select Game"
-                      fluid
-                      selection
-                      search
-                      icon={{ name: this.state.icon, color: this.state.iconcolor }}
-                      options={this.state.dropdownOptions}
-                      value={this.state.userGuess} // Bindung des Dropdowns an den Zustand
-                      onChange={this.onChangeDropdown}
-                      selectOnNavigation={true}
-                      style={{ minWidth: '400px', backgroundColor:"#36343B", color:"#FFFFF0", textStyle: {color: "#FFFFF0"}}}
-                      textStyle={{color: "#FFFFF0"}}
-                      searchInput={{ style: { color: "#FFFFF0" }}}
-                      
-                    />
-                  </Form>
-                </Grid.Column>
-              </Grid.Row>
-  
-              <Grid.Row style={{ marginTop: '20px' }}>
-              {connectedClients.map((client, index) => (
-            <Card.Group centered key={index} style={{ margin: '12px'}}>
-              <Card  style={{ width: '250px' , backgroundColor:"#36343B", border: '2.2px solid #ee4d40' , boxShadow: "none"}}>
-                <div style={{ height: '250px', overflow: 'hidden', backgroundColor:"#FFFFF0" }}>
-                  <Image src={client.skin} style={{ width: '250px', height: '250px', objectFit: 'cover' }} />
-                </div>
-                <Card.Content>
-                  <Card.Header style={{color: "#FFFFF0"}}>{client.username}</Card.Header>
-                  <Card.Meta style={{color: "#bfbfbf"}}>Gamer</Card.Meta>
-                  <Card.Description>
-                    <h2  style={{color: "#FFFFF0"}}>Punkte: {client.points}</h2>
-                  </Card.Description>
-                </Card.Content>
-                {guesses[client.username] && (
-                  <Label
-                    pointing
-                    color={guesses[client.username].isCorrect ? 'green' : 'red'}
-                  >
-                    {guesses[client.username].guess}
-                  </Label>
-                )}
-              </Card>
-            </Card.Group>
-          ))}
-              </Grid.Row>
-  
-              {this.state.showStartButton && (
-                <Grid.Row>
-                  <Form>
-                    <Form.Button content="Start" color="green" onClick={this.startGame} style={{backgroundColor: "#ee4d40"}}/>
-                  </Form>
-                </Grid.Row>
-              )}
-            </Grid>
-  
-           
-            
-        
-
-            <Grid.Row style={{ position: 'fixed', bottom: '0', right: '0', width: '300px', margin: '20px', border: '1.5px solid #0e0e12', borderRadius: '5px', backgroundColor: 'white' }}>
-  <div style={{ maxHeight: '150px', overflowY: 'auto', padding: '10px' , backgroundColor:"#36343B", color:"#FFFFF0"}}>
-    {this.state.chatMessages.map((msg, index) => (
-      <div key={index}><strong>{msg.username}:</strong> {msg.message}</div>
-    ))}
-    <div ref={(el) => { this.messagesEnd = el; }}></div>
-  </div>
-  <Form onSubmit={this.handleSendMessage} style={{ display: 'flex', alignItems: 'center', padding: '10px', backgroundColor:"#36343B", color:"#FFFFF0" }}>
-    <Input
-      placeholder='Nachricht...'
-      value={this.state.message}
-      onChange={(e) => this.setState({ message: e.target.value })}
-      style={{ flex: '1' }}
-      
-    />
-    <Button type='submit' icon>
-      <Icon name='send' />
-    </Button>
-  </Form>
-</Grid.Row>
-  
-            <Modal open={showModal} onClose={() => this.setState({ showModal: false })}>
-              <Modal.Header>Spiel beendet</Modal.Header>
-              <Modal.Content>
-                <p>{winnerInfo}</p>
-              </Modal.Content>
-              <Modal.Actions>
-                <Button onClick={() => this.setState({ showModal: false })}>Schließen</Button>
-              </Modal.Actions>
-            </Modal>
-  
-            {renderResult && (
-              <div style={resultStyle}>
-                {renderResult}
+      <Grid centered>
+        <Grid.Row>
+          <Grid.Column width={8} textAlign="center">
+            {!isPaused && (
+              <div className="timer-box">
+                <svg viewBox="0 0 100 100" className='circle-svg'>
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="#ee4d40" strokeWidth="10" strokeLinecap="round" style={circleStyle}></circle>
+                  <text x="50" y="50" className="timer-text">{countdownPlaying ? remainingTime : 'Paused'}</text>
+                </svg>
               </div>
             )}
-          </div>
-        );
-      }
-    }
-  }
-  
+            <iframe
+              id="youtube-video"
+              className={this.state.showVideo ? "video-frame-visible" : "video-frame-hidden"}
+              src={`${selectedsong.video}${selectedsong.video?.includes('?') ? '&' : '?'}enablejsapi=1&version=3`}
+              frameBorder="0" allow="autoplay; encrypted-media;"
+            ></iframe>
+          </Grid.Column>
+        </Grid.Row>
+
+        <Grid.Row>
+          <Grid.Column width={8}>
+            <Dropdown
+              placeholder="Select Game" fluid selection search inverted
+              options={this.state.dropdownOptions}
+              value={this.state.userGuess}
+              onChange={this.onChangeDropdown}
+              className="guess-dropdown"
+              style={{ backgroundColor: "#36343B", color: "#FFFFF0" }}
+            />
+          </Grid.Column>
+        </Grid.Row>
+
+        <Grid.Row style={{ marginTop: '20px' }}>
+          {connectedClients.map((client, index) => (
+            <Card key={index} style={{ width: '250px', backgroundColor: "#36343B", border: '2.2px solid #ee4d40', margin: '12px' }}>
+              <div style={{ height: '250px', overflow: 'hidden', backgroundColor: "#FFFFF0" }}>
+                <Image src={client.skin} style={{ width: '250px', height: '250px', objectFit: 'cover' }} />
+              </div>
+              <Card.Content>
+                <Card.Header style={{ color: "#FFFFF0" }}>{client.username}</Card.Header>
+                <Card.Description><h2 style={{ color: "#FFFFF0" }}>Punkte: {client.points}</h2></Card.Description>
+              </Card.Content>
+              {guesses[client.username] && (
+                <Label pointing color={guesses[client.username].isCorrect ? 'green' : 'red'}>
+                  {guesses[client.username].guess}
+                </Label>
+              )}
+            </Card>
+          ))}
+        </Grid.Row>
+
+        {this.state.showStartButton && isHost &&(
+          <Grid.Row>
+            <Button content="Start Game" color="green" onClick={this.startGame} style={{ backgroundColor: "#ee4d40" }} />
+          </Grid.Row>
+        )}
+      </Grid>
+
+      <Grid.Row className="chat-window">
+        <div className="chat-messages-container">
+          {chatMessages.map((msg, index) => (
+            <div key={index}><strong>{msg.username}:</strong> {msg.message}</div>
+          ))}
+          <div ref={(el) => { this.messagesEnd = el; }}></div>
+        </div>
+        <Form onSubmit={this.handleSendMessage} style={{ display: 'flex', padding: '10px', backgroundColor: "#36343B" }}>
+          <Input placeholder='Nachricht...' value={message} onChange={(e) => this.setState({ message: e.target.value })} style={{ flex: '1' }} />
+          <Button type='submit' icon><Icon name='send' /></Button>
+        </Form>
+      </Grid.Row>
+
+      <Modal open={showModal} onClose={() => this.setState({ showModal: false })}>
+        <Modal.Header>Spiel beendet</Modal.Header>
+        <Modal.Content><p>{winnerInfo}</p></Modal.Content>
+        <Modal.Actions><Button onClick={() => this.setState({ showModal: false })}>Schließen</Button></Modal.Actions>
+      </Modal>
+
+      {renderResultElement && <div className="result-modal">{renderResultElement}</div>}
+    </div>
+  );
+}
+
 }
