@@ -73,8 +73,8 @@ previousClients: [],
 
     };
 
-    this.socket = io('localhost:5002');
-    //this.socket = io('https://vmq-server.onrender.com');
+    //this.socket = io('localhost:5002');
+    this.socket = io('https://vmq-server.onrender.com');
     this.startGame = this.startGame.bind(this);
 
     this.handleUsernameSubmit = this.handleUsernameSubmit.bind(this);
