@@ -20,7 +20,7 @@ const genreOptions = [
   { key: 'slots', text: 'Slots', value: 'Slots' },
   { key: 'rythm', text: 'Rythm', value: 'rythm' },
   { key: 'horror', text: 'Horror', value: 'horror' },
-  { key: 'dramaa', text: 'Drama', value: 'drama' }
+  { key: 'drama', text: 'Drama', value: 'drama' }
   
   // Add more genres as needed
 ];
