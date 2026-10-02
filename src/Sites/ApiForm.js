@@ -18,7 +18,9 @@ const genreOptions = [
   { key: 'fighting', text: 'Fighting', value: 'Fighting' },
   { key: 'pointandclick', text: 'Point and Click', value: 'Point and Click' },
   { key: 'slots', text: 'Slots', value: 'Slots' },
-  { key: 'rythm', text: 'Rythm', value: 'rythm' }
+  { key: 'rythm', text: 'Rythm', value: 'rythm' },
+  { key: 'horror', text: 'Horror', value: 'horror' },
+  { key: 'drama', text: 'Drama', value: 'drama' }
   
   // Add more genres as needed
 ];
