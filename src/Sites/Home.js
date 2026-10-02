@@ -35,7 +35,7 @@ export default class ApiForm extends Component {
           <Segment textAlign='center' inverted>
             <Grid textAlign='center'>
             <Grid.Row style={{backgroundColor: "#1a1a1d"}}>
-            <Button as={Link} to='/singleplayer'content='Playyyyy' color='green' style={{backgroundColor: "#ee4d40"}}></Button>
+            <Button as={Link} to='/singleplayer'content='Play' color='green' style={{backgroundColor: "#ee4d40"}}></Button>
             </Grid.Row>
             <Grid.Row style={{backgroundColor: "#1a1a1d"}}>
             <Button as={Link} to='/multiplayer'content='Multiplayer' color='green' style={{backgroundColor: "#ee4d40"}}></Button>
