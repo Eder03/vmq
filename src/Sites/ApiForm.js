@@ -17,7 +17,8 @@ const genreOptions = [
   { key: 'platformer', text: 'Platformer', value: 'Platformer' },
   { key: 'fighting', text: 'Fighting', value: 'Fighting' },
   { key: 'pointandclick', text: 'Point and Click', value: 'Point and Click' },
-  { key: 'slots', text: 'Slots', value: 'Slots' }
+  { key: 'slots', text: 'Slots', value: 'Slots' },
+  { key: 'rythm', text: 'Rythm', value: 'rythm' }
   
   // Add more genres as needed
 ];
