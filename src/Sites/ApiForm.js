@@ -13,6 +13,12 @@ const genreOptions = [
   { key: 'simulation', text: 'Simulation', value: 'Simulation' },
   { key: 'sports', text: 'Sports', value: 'Sports' },
   { key: 'racing', text: 'Racing', value: 'Racing' },
+  { key: 'metroidvania', text: 'Metroidvania', value: 'Metroidvania' },
+  { key: 'platformer', text: 'Platformer', value: 'Platformer' },
+  { key: 'fighting', text: 'Fighting', value: 'Fighting' },
+  { key: 'pointandclick', text: 'Point and Click', value: 'Point and Click' },
+  { key: 'slots', text: 'Slots', value: 'Slots' }
+  
   // Add more genres as needed
 ];
 
@@ -30,6 +36,8 @@ const platformOptions = [
   { key: 'xbox-series-x', text: 'Xbox Series X', value: 'Xbox Series X', icon: 'xbox' },
   { key: 'mobile', text: 'Mobile', value: 'Mobile', icon: 'mobile' },
   // Nintendo consoles
+  { key: 'nes', text: 'NES', value: 'NES', icon: 'nintendo switch' },
+  { key: 'snes', text: 'SNES', value: 'SNES', icon: 'nintendo switch' },
   { key: 'nintendo-64', text: 'Nintendo 64', value: 'Nintendo 64', icon: 'nintendo switch' },
   { key: 'gamecube', text: 'GameCube', value: 'GameCube', icon: 'nintendo switch' },
   { key: 'wii', text: 'Wii', value: 'Wii', icon: 'nintendo switch' },
@@ -40,6 +48,7 @@ const platformOptions = [
   { key: 'nintendo-ds', text: 'Nintendo DS', value: 'Nintendo DS', icon: 'nintendo switch' },
   { key: 'nintendo-3ds', text: 'Nintendo 3DS', value: 'Nintendo 3DS', icon: 'nintendo switch' },
   { key: 'nintendo-switch', text: 'Nintendo Switch', value: 'Nintendo Switch', icon: 'nintendo switch' },
+  { key: 'nintendo-switch2', text: 'Nintendo Switch 2', value: 'Nintendo Switch 2', icon: 'nintendo switch' }
 ];
 
 export default class ApiForm extends Component {
