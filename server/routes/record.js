@@ -115,6 +115,32 @@ recordRoutes.route("/addMusic").post(function (req, response) {
       });
   });
 
+  // NEUE ROUTE: Game Info bearbeiten
+  recordRoutes.route("/editGameInfo").post(function (req, response) {
+    let db_connect = dbo.getDb();
+    
+    let myquery = { game: req.body.oldGame };
+    
+    let newvalues = {
+      $set: {
+        game: req.body.newGameData.game,
+        series: req.body.newGameData.series,
+        publisher: req.body.newGameData.publisher,
+        developer: req.body.newGameData.developer,
+        platforms: req.body.newGameData.platforms,
+        genres: req.body.newGameData.genres
+      },
+    };
+
+    db_connect
+      .collection("Music")
+      .updateOne(myquery, newvalues, function (err, res) {
+        if (err) throw err;
+        console.log("1 game info updated");
+        response.json(res);
+      });
+  });
+
   //Approve all games
   recordRoutes.route("/approveGame").post(function (req, response) {
     let db_connect = dbo.getDb();

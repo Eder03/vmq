@@ -16,11 +16,17 @@ export default class AddSong extends Component {
     this.playSong = this.playSong.bind(this);
     this.stopSong = this.stopSong.bind(this);
     
-    // Bindings für die Bearbeitungs-Funktion
+    // Bindings für die Song-Bearbeitung
     this.startEdit = this.startEdit.bind(this);
     this.cancelEdit = this.cancelEdit.bind(this);
     this.handleEditChange = this.handleEditChange.bind(this);
     this.saveEdit = this.saveEdit.bind(this);
+
+    // Bindings für die Game-Bearbeitung
+    this.startGameEdit = this.startGameEdit.bind(this);
+    this.cancelGameEdit = this.cancelGameEdit.bind(this);
+    this.handleGameEditChange = this.handleGameEditChange.bind(this);
+    this.saveGameEdit = this.saveGameEdit.bind(this);
 
     this.state = {
       musicData: [],
@@ -38,9 +44,14 @@ export default class AddSong extends Component {
       currentPlayingSong: null,
       isPlaying: false,
       
-      // States für das Bearbeiten
+      // States für Song-Bearbeitung
       editingSongId: null,
-      editFormData: {}
+      editFormData: {},
+
+      // States für Game-Bearbeitung
+      gameData: null,
+      isEditingGame: false,
+      editGameFormData: {}
     };
   }
 
@@ -94,7 +105,18 @@ export default class AddSong extends Component {
         approved: song.songapproved ? 'true' : 'false',
       }));
 
-      this.setState({ game, songs: newSongs });
+      this.setState({ 
+        game, 
+        songs: newSongs,
+        gameData: {
+          game: selectedGame.game || '',
+          series: selectedGame.series || '',
+          publisher: selectedGame.publisher || '',
+          developer: selectedGame.developer || '',
+          platforms: selectedGame.platforms ? selectedGame.platforms.join(', ') : '',
+          genres: selectedGame.genres ? selectedGame.genres.join(', ') : ''
+        }
+      });
     }
   }
 
@@ -106,6 +128,84 @@ export default class AddSong extends Component {
     this.setState({ currentPlayingSong: null, isPlaying: false });
   }
 
+  // --- Start der Game-Bearbeitungs-Methoden ---
+  startGameEdit() {
+    this.setState({ 
+      isEditingGame: true, 
+      editGameFormData: { ...this.state.gameData } 
+    });
+  }
+
+  cancelGameEdit() {
+    this.setState({ isEditingGame: false, editGameFormData: {} });
+  }
+
+  handleGameEditChange(e, { name, value }) {
+    this.setState(prevState => ({
+      editGameFormData: {
+        ...prevState.editGameFormData,
+        [name]: value
+      }
+    }));
+  }
+
+  saveGameEdit() {
+    this.setState({ loading: true });
+    
+    const { editGameFormData, gameData } = this.state;
+
+    let platformsArray = typeof editGameFormData.platforms === 'string' 
+        ? editGameFormData.platforms.split(',').map(s => s.trim()).filter(Boolean)
+        : editGameFormData.platforms;
+        
+    let genresArray = typeof editGameFormData.genres === 'string' 
+        ? editGameFormData.genres.split(',').map(s => s.trim()).filter(Boolean)
+        : editGameFormData.genres;
+
+    const payload = {
+      oldGame: gameData.game, 
+      newGameData: {
+        game: editGameFormData.game,
+        series: editGameFormData.series,
+        publisher: editGameFormData.publisher,
+        developer: editGameFormData.developer,
+        platforms: platformsArray,
+        genres: genresArray
+      }
+    };
+
+    axios.post('https://vmq.onrender.com/editGameInfo', payload)
+      .then(res => {
+        const newGameName = editGameFormData.game;
+        
+        this.setState(prevState => {
+          const updatedOptions = prevState.dropdownOptions.map(opt => 
+             opt.value === gameData.game ? { ...opt, text: newGameName, value: newGameName, key: newGameName } : opt
+          );
+
+          return {
+            gameData: editGameFormData,
+            game: newGameName,
+            dropdownOptions: updatedOptions,
+            isEditingGame: false,
+            successMessage: 'Game Info in der Datenbank erfolgreich aktualisiert!',
+            errorMessage: '',
+            loading: false
+          };
+        });
+      })
+      .catch(error => {
+        console.log(error);
+        this.setState({
+          errorMessage: 'Fehler beim Update der Game Info.',
+          successMessage: '',
+          loading: false
+        });
+      });
+  }
+  // --- Ende der Game-Bearbeitungs-Methoden ---
+
+  // --- Start der Song-Bearbeitungs-Methoden ---
   startEdit(song) {
     this.setState({ 
       editingSongId: song.id, 
@@ -173,6 +273,7 @@ export default class AddSong extends Component {
         });
       });
   }
+  // --- Ende der Song-Bearbeitungs-Methoden ---
 
   onSubmit(e) {
     e.preventDefault();
@@ -220,6 +321,70 @@ export default class AddSong extends Component {
           loading: false,
         });
       });
+  }
+
+  renderGameTable() {
+    if (!this.state.gameData || !this.state.gameData.game) return null;
+    
+    const { isEditingGame, editGameFormData, gameData } = this.state;
+    const data = isEditingGame ? editGameFormData : gameData;
+
+    return (
+      <div style={{ overflowX: 'auto', marginBottom: '2em', marginTop: '2em' }}>
+        <Header as='h3' color='teal'>Game Information</Header>
+        <Table celled>
+          <Table.Header>
+            <Table.Row>
+              <Table.HeaderCell>Game</Table.HeaderCell>
+              <Table.HeaderCell>Series</Table.HeaderCell>
+              <Table.HeaderCell>Publisher</Table.HeaderCell>
+              <Table.HeaderCell>Developer</Table.HeaderCell>
+              <Table.HeaderCell>Platforms</Table.HeaderCell>
+              <Table.HeaderCell>Genres</Table.HeaderCell>
+              <Table.HeaderCell>Actions</Table.HeaderCell>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            <Table.Row>
+              <Table.Cell>
+                {isEditingGame ? <Input fluid name="game" value={data.game} onChange={this.handleGameEditChange} /> : data.game}
+              </Table.Cell>
+              <Table.Cell>
+                {isEditingGame ? <Input fluid name="series" value={data.series} onChange={this.handleGameEditChange} /> : data.series}
+              </Table.Cell>
+              <Table.Cell>
+                {isEditingGame ? <Input fluid name="publisher" value={data.publisher} onChange={this.handleGameEditChange} /> : data.publisher}
+              </Table.Cell>
+              <Table.Cell>
+                {isEditingGame ? <Input fluid name="developer" value={data.developer} onChange={this.handleGameEditChange} /> : data.developer}
+              </Table.Cell>
+              <Table.Cell>
+                {isEditingGame ? <Input fluid name="platforms" value={data.platforms} onChange={this.handleGameEditChange} /> : data.platforms}
+              </Table.Cell>
+              <Table.Cell>
+                {isEditingGame ? <Input fluid name="genres" value={data.genres} onChange={this.handleGameEditChange} /> : data.genres}
+              </Table.Cell>
+              <Table.Cell style={{ minWidth: '100px', textAlign: 'center' }}>
+                {isEditingGame ? (
+                  <Button.Group>
+                    <Button icon color='green' onClick={this.saveGameEdit}>
+                      <Icon name='check' />
+                    </Button>
+                    <Button icon color='red' onClick={this.cancelGameEdit}>
+                      <Icon name='cancel' />
+                    </Button>
+                  </Button.Group>
+                ) : (
+                  <Button icon color='blue' onClick={this.startGameEdit}>
+                    <Icon name='edit' />
+                  </Button>
+                )}
+              </Table.Cell>
+            </Table.Row>
+          </Table.Body>
+        </Table>
+      </div>
+    );
   }
 
   renderTableData() {
@@ -290,7 +455,7 @@ export default class AddSong extends Component {
     return (
       <Container>
         <Segment padded='very'>
-          <Header as='h2' textAlign='center' color='teal'>Add New Song to Existing Game</Header>
+          <Header as='h2' textAlign='center' color='teal'>Add/Edit Songs & Game Info</Header>
           <Form onSubmit={this.onSubmit} loading={loading} error={!!errorMessage} success={!!successMessage}>
             <Form.Dropdown
               placeholder='Select Game'
@@ -303,7 +468,7 @@ export default class AddSong extends Component {
               required
             />
 
-            <Label style={{ marginBottom: '10px' }}>Song Information</Label>
+            <Label style={{ marginBottom: '10px', marginTop: '10px' }}>Add New Song Information</Label>
             <Form.Group widths='equal'>
               <Form.Input
                 label={<label>Songname</label>}
@@ -340,7 +505,7 @@ export default class AddSong extends Component {
             <Grid>
               <Grid.Row>
                 <Grid.Column>
-                  <Form.Button content='Submit' color='green' />
+                  <Form.Button content='Submit New Song' color='green' />
                 </Grid.Column>
               </Grid.Row>
             </Grid>
@@ -348,7 +513,10 @@ export default class AddSong extends Component {
             <Message error header='Error' content={errorMessage} />
           </Form>
 
+          {this.renderGameTable()}
+
           <div style={{ overflowX: 'auto', marginTop: '2em' }}>
+            <Header as='h3' color='teal'>Songs</Header>
             <Table celled>
               <Table.Header>
                 <Table.Row>
