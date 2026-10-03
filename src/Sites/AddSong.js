@@ -1,7 +1,55 @@
 import React, { Component } from 'react';
-import { Form, Label, Grid, Table, Button, Container, Header, Segment, Message, Icon, Input } from 'semantic-ui-react';
+import { Form, Label, Grid, Table, Button, Container, Header, Segment, Message, Icon, Input, Dropdown } from 'semantic-ui-react';
 import axios from 'axios';
 import YouTube from 'react-youtube';
+
+const genreOptions = [
+  { key: 'action', text: 'Action', value: 'Action' },
+  { key: 'adventure', text: 'Adventure', value: 'Adventure' },
+  { key: 'rpg', text: 'RPG', value: 'RPG' },
+  { key: 'shooter', text: 'Shooter', value: 'Shooter' },
+  { key: 'puzzle', text: 'Puzzle', value: 'Puzzle' },
+  { key: 'strategy', text: 'Strategy', value: 'Strategy' },
+  { key: 'simulation', text: 'Simulation', value: 'Simulation' },
+  { key: 'sports', text: 'Sports', value: 'Sports' },
+  { key: 'racing', text: 'Racing', value: 'Racing' },
+  { key: 'metroidvania', text: 'Metroidvania', value: 'Metroidvania' },
+  { key: 'platformer', text: 'Platformer', value: 'Platformer' },
+  { key: 'fighting', text: 'Fighting', value: 'Fighting' },
+  { key: 'pointandclick', text: 'Point and Click', value: 'Point and Click' },
+  { key: 'slots', text: 'Slots', value: 'Slots' },
+  { key: 'rythm', text: 'Rythm', value: 'rythm' },
+  { key: 'horror', text: 'Horror', value: 'horror' },
+  { key: 'drama', text: 'Drama', value: 'drama' }
+];
+
+const platformOptions = [
+  { key: 'pc', text: 'PC', value: 'PC', icon: 'desktop' },
+  { key: 'ps1', text: 'PS1', value: 'PS1', icon: 'playstation' },
+  { key: 'ps2', text: 'PS2', value: 'PS2', icon: 'playstation' },
+  { key: 'ps3', text: 'PS3', value: 'PS3', icon: 'playstation' },
+  { key: 'ps4', text: 'PS4', value: 'PS4', icon: 'playstation' },
+  { key: 'ps5', text: 'PS5', value: 'PS5', icon: 'playstation' },
+  { key: 'psp', text: 'PSP', value: 'PSP', icon: 'playstation' },
+  { key: 'xbox', text: 'Xbox', value: 'Xbox', icon: 'xbox' },
+  { key: 'xbox-one', text: 'Xbox One', value: 'Xbox One', icon: 'xbox' },
+  { key: 'xbox-360', text: 'Xbox 360', value: 'Xbox 360', icon: 'xbox' },
+  { key: 'xbox-series-x', text: 'Xbox Series X', value: 'Xbox Series X', icon: 'xbox' },
+  { key: 'mobile', text: 'Mobile', value: 'Mobile', icon: 'mobile' },
+  { key: 'nes', text: 'NES', value: 'NES', icon: 'nintendo switch' },
+  { key: 'snes', text: 'SNES', value: 'SNES', icon: 'nintendo switch' },
+  { key: 'nintendo-64', text: 'Nintendo 64', value: 'Nintendo 64', icon: 'nintendo switch' },
+  { key: 'gamecube', text: 'GameCube', value: 'GameCube', icon: 'nintendo switch' },
+  { key: 'wii', text: 'Wii', value: 'Wii', icon: 'nintendo switch' },
+  { key: 'wii-u', text: 'Wii U', value: 'Wii U', icon: 'nintendo switch' },
+  { key: 'gameboy', text: 'Game Boy', value: 'Game Boy', icon: 'nintendo switch' },
+  { key: 'gameboy-color', text: 'Game Boy Color', value: 'Game Boy Color', icon: 'nintendo switch' },
+  { key: 'gameboy-advance', text: 'Game Boy Advance', value: 'Game Boy Advance', icon: 'nintendo switch' },
+  { key: 'nintendo-ds', text: 'Nintendo DS', value: 'Nintendo DS', icon: 'nintendo switch' },
+  { key: 'nintendo-3ds', text: 'Nintendo 3DS', value: 'Nintendo 3DS', icon: 'nintendo switch' },
+  { key: 'nintendo-switch', text: 'Nintendo Switch', value: 'Nintendo Switch', icon: 'nintendo switch' },
+  { key: 'nintendo-switch2', text: 'Nintendo Switch 2', value: 'Nintendo Switch 2', icon: 'nintendo switch' }
+];
 
 export default class AddSong extends Component {
   constructor(props) {
@@ -113,8 +161,8 @@ export default class AddSong extends Component {
           series: selectedGame.series || '',
           publisher: selectedGame.publisher || '',
           developer: selectedGame.developer || '',
-          platforms: selectedGame.platforms ? selectedGame.platforms.join(', ') : '',
-          genres: selectedGame.genres ? selectedGame.genres.join(', ') : ''
+          platforms: selectedGame.platforms || [],
+          genres: selectedGame.genres || []
         }
       });
     }
@@ -154,14 +202,6 @@ export default class AddSong extends Component {
     
     const { editGameFormData, gameData } = this.state;
 
-    let platformsArray = typeof editGameFormData.platforms === 'string' 
-        ? editGameFormData.platforms.split(',').map(s => s.trim()).filter(Boolean)
-        : editGameFormData.platforms;
-        
-    let genresArray = typeof editGameFormData.genres === 'string' 
-        ? editGameFormData.genres.split(',').map(s => s.trim()).filter(Boolean)
-        : editGameFormData.genres;
-
     const payload = {
       oldGame: gameData.game, 
       newGameData: {
@@ -169,8 +209,8 @@ export default class AddSong extends Component {
         series: editGameFormData.series,
         publisher: editGameFormData.publisher,
         developer: editGameFormData.developer,
-        platforms: platformsArray,
-        genres: genresArray
+        platforms: editGameFormData.platforms || [],
+        genres: editGameFormData.genres || []
       }
     };
 
@@ -330,18 +370,18 @@ export default class AddSong extends Component {
     const data = isEditingGame ? editGameFormData : gameData;
 
     return (
-      <div style={{ overflowX: 'auto', marginBottom: '2em', marginTop: '2em' }}>
+      <div style={{ marginBottom: '2em', marginTop: '2em', paddingBottom: isEditingGame ? '15em' : '0' }}>
         <Header as='h3' color='teal'>Game Information</Header>
-        <Table celled>
+        <Table celled unstackable>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell>Game</Table.HeaderCell>
-              <Table.HeaderCell>Series</Table.HeaderCell>
-              <Table.HeaderCell>Publisher</Table.HeaderCell>
-              <Table.HeaderCell>Developer</Table.HeaderCell>
-              <Table.HeaderCell>Platforms</Table.HeaderCell>
-              <Table.HeaderCell>Genres</Table.HeaderCell>
-              <Table.HeaderCell>Actions</Table.HeaderCell>
+              <Table.HeaderCell style={{ minWidth: '150px' }}>Game</Table.HeaderCell>
+              <Table.HeaderCell style={{ minWidth: '150px' }}>Series</Table.HeaderCell>
+              <Table.HeaderCell style={{ minWidth: '130px' }}>Publisher</Table.HeaderCell>
+              <Table.HeaderCell style={{ minWidth: '130px' }}>Developer</Table.HeaderCell>
+              <Table.HeaderCell style={{ minWidth: '250px' }}>Platforms</Table.HeaderCell>
+              <Table.HeaderCell style={{ minWidth: '220px' }}>Genres</Table.HeaderCell>
+              <Table.HeaderCell style={{ width: '110px', textAlign: 'center' }}>Actions</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -358,13 +398,39 @@ export default class AddSong extends Component {
               <Table.Cell>
                 {isEditingGame ? <Input fluid name="developer" value={data.developer} onChange={this.handleGameEditChange} /> : data.developer}
               </Table.Cell>
-              <Table.Cell>
-                {isEditingGame ? <Input fluid name="platforms" value={data.platforms} onChange={this.handleGameEditChange} /> : data.platforms}
+              <Table.Cell style={{ overflow: 'visible' }}>
+                {isEditingGame ? (
+                  <Dropdown
+                    name="platforms"
+                    multiple
+                    selection
+                    search
+                    options={platformOptions}
+                    value={data.platforms}
+                    onChange={this.handleGameEditChange}
+                    fluid
+                  />
+                ) : (
+                  Array.isArray(data.platforms) ? data.platforms.join(', ') : data.platforms
+                )}
               </Table.Cell>
-              <Table.Cell>
-                {isEditingGame ? <Input fluid name="genres" value={data.genres} onChange={this.handleGameEditChange} /> : data.genres}
+              <Table.Cell style={{ overflow: 'visible' }}>
+                {isEditingGame ? (
+                  <Dropdown
+                    name="genres"
+                    multiple
+                    selection
+                    search
+                    options={genreOptions}
+                    value={data.genres}
+                    onChange={this.handleGameEditChange}
+                    fluid
+                  />
+                ) : (
+                  Array.isArray(data.genres) ? data.genres.join(', ') : data.genres
+                )}
               </Table.Cell>
-              <Table.Cell style={{ minWidth: '100px', textAlign: 'center' }}>
+              <Table.Cell style={{ textAlign: 'center' }}>
                 {isEditingGame ? (
                   <Button.Group>
                     <Button icon color='green' onClick={this.saveGameEdit}>
@@ -453,7 +519,7 @@ export default class AddSong extends Component {
     };
 
     return (
-      <Container>
+      <Container style={{ width: '95%', maxWidth: '1600px' }}>
         <Segment padded='very'>
           <Header as='h2' textAlign='center' color='teal'>Add/Edit Songs & Game Info</Header>
           <Form onSubmit={this.onSubmit} loading={loading} error={!!errorMessage} success={!!successMessage}>
@@ -515,7 +581,7 @@ export default class AddSong extends Component {
 
           {this.renderGameTable()}
 
-          <div style={{ overflowX: 'auto', marginTop: '2em' }}>
+          <div style={{ marginTop: '2em' }}>
             <Header as='h3' color='teal'>Songs</Header>
             <Table celled>
               <Table.Header>
