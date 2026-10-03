@@ -84,6 +84,37 @@ recordRoutes.route("/addMusic").post(function (req, response) {
       });
   });
 
+  // NEUE ROUTE: Bestehenden Song bearbeiten
+  recordRoutes.route("/editSong").post(function (req, response) {
+    let db_connect = dbo.getDb();
+    
+    // Finde das Spiel und den spezifischen Song im Array.
+    // Damit das Überschreiben klappt, falls die YouTube-ID (link) im Frontend 
+    // geändert wird, sollte idealerweise `oldLink` vom Frontend mitgeschickt werden.
+    let myquery = { 
+      game: req.body.game, 
+      "songs.link": req.body.oldLink || req.body.songs.link 
+    };
+    
+    // Aktualisiere die Werte des gefundenen Array-Elements mittels Positionsoperator ($)
+    let newvalues = {
+      $set: {
+        "songs.$.name": req.body.songs.name,
+        "songs.$.link": req.body.songs.link,
+        "songs.$.composers": req.body.songs.composers,
+        "songs.$.songapproved": req.body.songs.songapproved
+      },
+    };
+
+    db_connect
+      .collection("Music")
+      .updateOne(myquery, newvalues, function (err, res) {
+        if (err) throw err;
+        console.log("1 song edited");
+        response.json(res);
+      });
+  });
+
   //Approve all games
   recordRoutes.route("/approveGame").post(function (req, response) {
     let db_connect = dbo.getDb();
