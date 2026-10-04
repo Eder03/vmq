@@ -12,6 +12,7 @@ import Game from "./Sites/Game"
 import Multiplayer from "./Sites/Multiplayer"
 import ApiForm from "./Sites/ApiForm";
 import AddSong from "./Sites/AddSong"
+import AddSongNew from "./Sites/AddSong_updated.tsx"
 
 
 
@@ -33,8 +34,9 @@ export default function Routing() {
           <Route index element={<Home/>} />
           <Route path='/singleplayer' element={<Game />} />
           <Route path='/multiplayer' element={<Multiplayer />} />
-          <Route path='/addsong' element={<AddSong />} />
+          
           <Route path='/addgame' element={<ApiForm />}   />
+          <Route path='/addsong' element={<AddSongNew />}   />
     </Routes>
    </Router>
   );
